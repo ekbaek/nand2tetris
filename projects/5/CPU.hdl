@@ -1,0 +1,86 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/5/CPU.hdl
+/*
+ * The Hack Central Processing unit (CPU).
+ * Parses the binary code in the instruction input and executes it according to the
+ * Hack machine language specification. In the case of a C-instruction, computes the
+ * function specified by the instruction. If the instruction specifies to read a memory
+ * value, the inM input is expected to contain this value. If the instruction specifies
+ * to write a value to the memory, sets the outM output to this value, sets the addressM
+ * output to the target address, and asserts the writeM output (when writeM = 0, any
+ * value may appear in outM).
+ * If the reset input is 0, computes the address of the next instruction and sets the
+ * pc output to that value. If the reset input is 1, sets pc to 0.
+ * Note: The outM and writeM outputs are combinational: they are affected by the
+ * instruction's execution during the current cycle. The addressM and pc outputs are
+ * clocked: although they are affected by the instruction's execution, they commit to
+ * their new values only in the next cycle.
+ */
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+    // instruction이 A-명령어 혹은 C-명령어 구분해야함
+    // C-instruction이 첫 비트가 1로 시작
+
+    Not(in=instruction[15], out=Ainstruction);
+    Not(in=Ainstruction, out=Cinstruction);
+
+    // ALU 결과를 어디 보낼지? 결정
+    // C-inst: 1xxacccccdddjjj 꼴임 -> ddd가 dest
+    And(a=Cinstruction, b=instruction[5], out=ALUtoA);
+    Mux16(a=instruction, b=ALUout, sel= ALUtoA, out=AregIn);
+
+    // Aout 값 도출
+    // 그러기 위해서 load 필요
+    Or(a=Ainstruction, b=ALUtoA, out=loadA);
+    ARegister(in=AregIn, load=loadA, out=Aout);
+
+    // Mux16의 인풋, 로드, 아웃풋
+    // instruction[12]가 결정
+    Mux16(a=Aout, b=inM, sel=instruction[12], out=Mux16out);
+
+    // Dregister의 input,load, output
+    // c-inst에서 ddd가 어떤 register가 ALUout을 받아야 할지 결정
+    And(a=Cinstruction, b=instruction[4], out=loadD);
+    DRegister(in=ALUout, load=loadD, out=DregOut);
+
+    // ALU 구현
+    ALU(x=DregOut, y=Mux16out, zx=instruction[11], 
+        nx=instruction[10], zy=instruction[9], ny=instruction[8],
+        f=instruction[7], no=instruction[6], out=ALUout, zr=ZRout, ng=NGout);
+
+    Or16(a=false, b=ALUout, out=outM);
+    Or16(a=false, b=Aout, out[0..14]=addressM); // addressM[15]라고 명시
+    And(a=Cinstruction, b=instruction[3], out=writeM);
+
+    // pc 설정
+    // zr == JEQ, ng == JLT 
+    And(a=ZRout, b=instruction[1], out=jeq);
+    And(a=NGout, b=instruction[2], out=jlt);
+
+    Or(a=ZRout, b=NGout, out=zrORng);
+    Not(in=zrORng, out=positive);
+    And(a=positive, b=instruction[0], out=jgt);
+
+    Or(a=jlt, b=jeq, out=jle);
+    Or(a=jle, b=jgt, out=jumpToA);
+
+    // pcload가 0이면 pc++
+    // pcload가 1이면 jump(c-instruction일때 pcload==1)
+    And(a=Cinstruction, b=jumpToA, out=PCload);
+    Not(in=PCload, out=PCinc);
+    PC(in=Aout, load=PCload, inc=PCinc, reset=reset, out[0..14]=pc); // pc[15]라고 명시
+}
