@@ -6,21 +6,6 @@
 
 using namespace std;
 
-// • Constructor / initializer: 
-// Creates a Parser and opens the source text file
-
-// • Getting the current instruction:
-// hasMoreLines(): 
-// Checks if there is more work to do (boolean)
-// advance(): 
-// Gets the next instruction and makes it the current instruction (string)
-
-// • Parsing the current instruction:
-// instructionType(): 
-// Returns the instruction type symbol(): Returnstheinstruction’ssymbol(string) 
-//dest(): Returnstheinstruction’sdestfield(string) 
-//comp(): Returns the instruction’s comp field (string) jump(): Returnstheinstruction’sjumpfield(string)
-
 class Parser {
 private:
     map<char, char> commandT;
