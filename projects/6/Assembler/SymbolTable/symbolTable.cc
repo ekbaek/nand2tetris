@@ -38,5 +38,7 @@ bool SymbolTable::containEntry (const string& symbol) {
 }
 
 int SymbolTable::getAddress (const string& symbol) {
-    return symbolT[symbol];
+    if (symbolT.find(symbol) != symbolT.end())
+        return symbolT[symbol];
+    return 0;
 }
