@@ -49,19 +49,19 @@ Code::Code () {
     jumpT["JMP"] = "111";
 }
 
-string Code::comp (string type, long& lineNum) {
+string Code::comp (string type, unsigned long& lineNum) {
     if (compT.find(type) != compT.end()) 
         return compT[type];
     exit(1);
 }
 
-string Code::dest (string type, long& lineNum) {
+string Code::dest (string type, unsigned long& lineNum) {
     if (destT.find(type) != destT.end()) 
         return destT[type];
     exit(1);
 }
 
-string Code::jump (string type, long& lineNum) {
+string Code::jump (string type, unsigned long& lineNum) {
     if (jumpT.find(type) != jumpT.end())
         return jumpT[type];
     exit(1);

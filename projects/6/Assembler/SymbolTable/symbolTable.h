@@ -1,6 +1,3 @@
-#ifndef SYMBOLTABLE_H
-#define SYMBOLTABLE_H
-
 #include <map>
 #include <iostream>
 #include <string>
@@ -16,5 +13,3 @@ public:
     bool containEntry (const string& symbol);
     int getAddress (const string& symbol);
 };
-
-#endif SYMBOLTABLE_H
