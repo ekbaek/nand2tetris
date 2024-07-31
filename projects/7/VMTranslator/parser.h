@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 
 using namespace std;
 
@@ -21,15 +22,17 @@ enum TYPE
 
 class Parser {
 private:
-    istream fin;
+    ifstream fin;
     string current_command;
+    string filename_;
 public:
-    Parser (string& FileName);
+    Parser (string filename);
+    ~Parser ();
     bool hasMoreLines ();
-    string advance ();
+    void advance ();
     TYPE commandType ();
     string arg1 ();
     int arg2 ();
 };
 
-#endif PARSER_H
+#endif // PARSER_H
