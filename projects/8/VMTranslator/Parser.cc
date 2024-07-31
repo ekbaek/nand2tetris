@@ -4,6 +4,12 @@
 #include <iostream>
 using namespace std;
 
+// Constructor
+Parser::Parser()
+{
+	filename_="";
+}
+
 Parser::Parser(string filename)
 {
 	filename_ = filename;
@@ -13,12 +19,14 @@ Parser::Parser(string filename)
 		cerr << "Error: Could not open " << filename << ".\n";
 }
 
+// Destructor
 Parser::~Parser()
 {
 	if (inf.is_open())
 		inf.close();
 }
 
+// Methods
 bool Parser::hasMoreCommands(void)
 {
 	return !inf.eof();
@@ -54,20 +62,24 @@ VMcommand Parser::commandType(void)
 		return C_RETURN;
 	else if ((currentCommand_.substr(0, 4) == "call"))
 		return C_CALL;
-    return C_ARITHMETIC;
 }
 
 string Parser::arg1(void)
 {
 	VMcommand ct = commandType();
-	if (ct != C_RETURN)
+	if (ct == C_ARITHMETIC)
+	{
+		int firstSpace = currentCommand_.find(" ",0);
+		string a1 = currentCommand_.substr(0,firstSpace);
+		return a1;
+	}
+	else if (ct != C_RETURN)
 	{
 		int firstSpace = currentCommand_.find(" ", 0);
 		int secondSpace = currentCommand_.find(" ", firstSpace + 1);
 		string a1 = currentCommand_.substr(firstSpace + 1, secondSpace - firstSpace - 1);
 		return a1;
 	}
-    return "";
 }
 
 int Parser::arg2(void)
@@ -82,5 +94,15 @@ int Parser::arg2(void)
 		int a2i = stoi(a2);
 		return a2i;
 	}
-    return -1;
+}
+
+void Parser::setFileName(string filename)
+{
+	filename_=filename;
+	filename = filename + ".vm";
+	if(inf.is_open())
+		inf.close();
+	inf.open(filename.c_str());
+	if (!inf.is_open())
+		cerr << "Error: Could not open " << filename << ".\n";
 }

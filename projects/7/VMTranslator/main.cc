@@ -5,22 +5,31 @@
 
 using namespace std;
 
-int main (int argc, char* argv[]) {
-    CodeWriter codewriter;
-    for (int i = 1; i < argc; i++) {
-        string filename = argv[i];
-        int dot = filename.find(".", 0);
-        filename = filename.substr(0, dot);
-        Parser parser(filename);
-        codewriter.setFileName(filename);
-        while (parser.hasMoreLines()) {
-            parser.advance ();
-            if (parser.commandType() == C_ARITHMETIC) 
-                codewriter.writeArithmetic(parser.arg1());
-            else if (parser.commandType() == C_POP || parser.commandType() == C_PUSH)
-                codewriter.writePushPop(parser.commandType(), parser.arg1(), parser.arg2());
-
-        }
-    }
-    return 0;
+int main(int argc, char *argv[])
+{
+	CodeWriter asm1;
+	for(int i=1;i<argc;i++)
+	{
+		string filename = argv[i];
+		int dot = filename.find(".",0);
+		filename = filename.substr(0,dot);
+		Parser vm1(filename);
+		asm1.setFileName(filename);
+		while (vm1.hasMoreCommands())
+		{
+			vm1.advance();
+			if (vm1.commandType() == C_ARITHMETIC)
+			{
+				asm1.writeArithmetic(vm1.arg1());
+			}
+			else if (vm1.commandType() == C_POP)
+			{
+				asm1.writePushPop(C_POP, vm1.arg1(), vm1.arg2());
+			}
+			else if (vm1.commandType() == C_PUSH)
+			{
+				asm1.writePushPop(C_PUSH, vm1.arg1(), vm1.arg2());
+			}
+		}
+	}
 }

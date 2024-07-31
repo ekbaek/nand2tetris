@@ -1,38 +1,39 @@
-#ifndef CODEWRITER_H
-#define CODEWRITER_H
+#ifndef _CODEWRITER_
+#define _CODEWRITER_
 
 #include <iostream>
-#include <fstream>
 #include <string>
+#include <fstream>
 #include "Parser.h"
-
 using namespace std;
 
-class CodeWriter {
+class CodeWriter
+{
 public:
-    CodeWriter ();
-    CodeWriter (string FileName);
-    void setFileName (string FileName);
-    void init ();
-    void writeArithmetic (string type);
-    void writePushPop (TYPE type, string arg1, int arg2);
-    void close ();
+	CodeWriter(string filename); 
+	CodeWriter();
+	~CodeWriter();
 
-    // additional functions
-    void increaseSP ();
-    void decreaseSP ();
-    void push (string segment, int i);
-    void pop (string segment, int i);
-    void popStoreToRam (int registerNum); // value in stack stores to registerNum
-    void popStoreToDreg ();
-    void setReturn ();
-    void getReturn ();
+	void setFileName(string filename);
+	void writeArithmetic(string command);
+	void writePushPop(VMcommand pushOrPop, string segment, int index); 
+	void close(void); 
+
+	void popD(void); 
+	void popGPR(int regNum); 
+	void decSP(void); 
+	void incSP(void);
+	void setReturn(void); 
+	void getReturn(void); 
+	void init(void); 
+	void push(string loc, int i); 
+	void pop(string loc, int i); 
+	
 private:
-    ofstream fout;
-    string filename;
-    string current_command;
-    int labelN;
-    int start;
+	string filename_;
+	ofstream outf;
+	int labelnum_;
+	int start_;
 };
 
-#endif // CODEWRITER_H
+#endif

@@ -1,198 +1,265 @@
 #include "CodeWriter.h"
+#include <string>
 #include <iostream>
+#include <fstream>
+#include <assert.h>
+using namespace std;
 
-CodeWriter::CodeWriter () {
-    labelN = 0;
-    start = 0;
+// Constructor
+CodeWriter::CodeWriter()
+{
+    labelnum_ = 0;
+    start_ = 0;
 }
-
-CodeWriter::CodeWriter (std::string FileName) {
-    labelN = 0;
-    start = 0;
-    filename = FileName;
-    FileName += ".asm";
-    fout.open(FileName.c_str());
-    if (fout.fail())    
-        std::cout << "Fail to open " << FileName << std::endl;
+CodeWriter::CodeWriter(string filename)
+{
+    labelnum_ = 0;
+    start_ = 0;
+    filename_ = filename;
+    filename = filename + ".asm";
+    outf.open(filename.c_str());
+    if (!outf.is_open())
+        cerr << "Could not open output file " << filename_ << ".\n";
     init();
 }
 
-void CodeWriter::setFileName (std::string FileName) {
-	if (fout.is_open())
-		fout.close();
-	filename = FileName;
-	FileName = FileName + ".asm";
-	fout.open(FileName.c_str());
-	if (!fout.is_open())
-		cerr << "Could not open output file " << filename << ".\n";
-	init();
-
+// Destructor
+CodeWriter::~CodeWriter()
+{
+    if (outf.is_open())
+        outf.close();
 }
 
-void CodeWriter::init () {
-    fout << "@START" << start << std::endl << "0;JMP" << std::endl << "(MAKETRUE)" << std::endl;
-    decreaseSP();
-    fout << "M=-1" << std::endl;
-    increaseSP();
+// Methods
+void CodeWriter::setFileName(string filename)
+{
+    if (outf.is_open())
+        outf.close();
+    filename_ = filename;
+    filename = filename + ".asm";
+    outf.open(filename.c_str());
+    if (!outf.is_open())
+        cerr << "Could not open output file " << filename_ << ".\n";
+    init();
+}
+
+void CodeWriter::writeArithmetic(string command)
+{
+    if (command == "add")
+    {
+        popD();
+        decSP();
+        outf << "M=D+M" << endl;
+        incSP();
+    }
+    else if (command == "sub")
+    {
+        popD();
+        decSP();
+        outf << "M=M-D" << endl;
+        incSP();
+    }
+    else if (command == "neg")
+    {
+        decSP();
+        outf << "M=-M" << endl;
+        incSP();
+    }
+    else if (command == "not")
+    {
+        decSP();
+        outf << "M=!M" << endl;
+        incSP();
+    }
+    else if (command == "and")
+    {
+        popD();
+        decSP();
+        outf << "M=D&M" << endl;
+        incSP();
+    }
+    else if (command == "or")
+    {
+        popD();
+        decSP();
+        outf << "M=D|M" << endl;
+        incSP();
+    }
+    else if (command == "eq")
+    {
+        setReturn();
+        popD();
+        decSP();
+        outf << "D=D-M" << endl << "M=0" << endl;
+        incSP();
+        outf << "@MAKETRUE" << endl << "D;JEQ" << endl << "(RETURN" << labelnum_ << ")" << endl;
+        labelnum_++;
+    }
+    else if (command == "gt")
+    {
+        setReturn();
+        popD();
+        decSP();
+        outf << "D=D-M" << endl << "M=0" << endl;
+        incSP();
+        outf << "@MAKETRUE" << endl << "D;JLT" << endl << "(RETURN" << labelnum_ << ")" << endl;
+        labelnum_++;
+    }
+    else if (command == "lt")
+    {
+        setReturn();
+        popD();
+        decSP();
+        outf << "D=D-M" << endl << "M=0" << endl;
+        incSP();
+        outf << "@MAKETRUE" << endl << "D;JGT" << endl << "(RETURN" << labelnum_ << ")" << endl;
+        labelnum_++;
+    }
+}
+
+void CodeWriter::writePushPop(VMcommand pushOrPop, string segment, int index)
+{
+    if (pushOrPop == C_PUSH)
+    {
+        if (segment == "constant")
+        {
+            outf << "@" << index << endl << "D=A" << endl << "@SP" << endl << "A=M" << endl << "M=D" << endl;
+            incSP();
+        }
+        else if (segment == "local")
+        {
+            push("LCL", index);
+        }
+        else if (segment == "argument")
+        {
+            push("ARG", index);
+        }
+        else if (segment == "this")
+        {
+            push("THIS", index);
+        }
+        else if (segment == "that")
+        {
+            push("THAT", index);
+        }
+        else if (segment == "pointer")
+        {
+            push("3", index);
+        }
+        else if (segment == "temp")
+        {
+            push("5", index);
+        }
+        else if (segment == "static")
+        {
+            outf << "@" << filename_ << "." << index << endl << "D=M" << endl << "@SP" << endl << "A=M" << endl << "M=D" << endl;
+            incSP();
+        }
+    }
+    else if (pushOrPop == C_POP)
+    {
+        if (segment == "local")
+        {
+            pop("LCL", index);
+        }
+        else if (segment == "argument")
+        {
+            pop("ARG", index);
+        }
+        else if (segment == "this")
+        {
+            pop("THIS", index);
+        }
+        else if (segment == "that")
+        {
+            pop("THAT", index);
+        }
+        else if (segment == "pointer")
+        {
+            pop("3", index);
+        }
+        else if (segment == "temp")
+        {
+            pop("5", index);
+        }
+        else if (segment == "static")
+        {
+            outf << "@" << filename_ << "." << index << endl << "D=A" << endl << "@R13" << endl << "M=D" << endl << "@SP" << endl << "AM=M-1" << endl << "D=M" << endl << "@R13" <<
+                endl << "A=M" << endl << "M=D" << endl;
+        }
+    }
+}
+
+void CodeWriter::popD(void)
+{
+    outf << "@SP" << endl << "AM=M-1" << endl << "D=M" << endl;
+}
+
+void CodeWriter::popGPR(int regNum)
+{
+    assert(regNum >= 13 && regNum <= 15);
+    outf << "@" << regNum << endl << "M=D" << endl;
+}
+
+void CodeWriter::decSP(void)
+{
+    outf << "@SP" << endl << "AM=M-1" << endl;
+}
+
+void CodeWriter::incSP(void)
+{
+    outf << "@SP" << endl << "M=M+1" << endl;
+}
+
+void CodeWriter::setReturn(void)
+{
+    outf << "@RETURN" << labelnum_ << endl << "D=A" << endl << "@R15" << endl << "M=D" << endl;
+}
+
+void CodeWriter::getReturn(void)
+{
+    outf << "@R15" << endl << "A=M" << endl << "0;JMP" << endl;
+}
+
+void CodeWriter::init(void)
+{
+    outf << "@START" << start_ << endl << "0;JMP" << endl << "(MAKETRUE)" << endl;
+    decSP();
+    outf << "M=-1" << endl;
+    incSP();
     getReturn();
-    fout << "(START" << start << ")" << std::endl;
-    start++;
+    outf << "(START" << start_ << ")" << endl;
+    start_++;
 }
 
-void CodeWriter::writeArithmetic (std::string type) {
-    if (type == "add") {
-        popStoreToDreg ();
-        decreaseSP ();
-        fout << "M=M+D" << std::endl;
-        increaseSP ();
-    } else if (type == "sub") {
-        popStoreToDreg ();
-        decreaseSP ();
-        fout << "M=M-D" << std::endl;
-        increaseSP ();
-    } else if (type == "neg") {
-        decreaseSP ();
-        fout << "M=-M" << std::endl;
-        increaseSP ();
-    } else if (type == "eq") {
-        setReturn ();
-        popStoreToDreg ();
-        decreaseSP ();
-        fout << "D=D-M" << std::endl << "M=0" << std::endl;
-        increaseSP();
-        fout << "@MAKETRUE" << std::endl << "D;JEQ" << std::endl << "(RETURN" << labelN << ")"<< std::endl;
-        labelN++;
-    } else if (type == "gt") {
-        setReturn ();
-        popStoreToDreg ();
-        decreaseSP ();
-        fout << "D=D-M" << std::endl << "M=0" << std::endl;
-        increaseSP();
-        fout << "@MAKETRUE" << std::endl << "D;JLT" << std::endl << "(RETURN" << labelN << ")"<< std::endl;
-        labelN++;        
-    } else if (type == "lt") {
-        setReturn ();
-        popStoreToDreg ();
-        decreaseSP ();
-        fout << "D=D-M" << std::endl << "M=0" << std::endl;
-        increaseSP();
-        fout << "@MAKETRUE" << std::endl << "D;JGT" << std::endl << "(RETURN" << labelN << ")"<< std::endl;
-        labelN++;        
-    } else if (type == "and") {
-        popStoreToDreg ();
-        decreaseSP ();
-        fout << "M=M&D" << std::endl;
-        increaseSP ();
-    } else if (type == "or") {
-        popStoreToDreg ();
-        decreaseSP ();
-        fout << "M=M|D" << std::endl;
-        increaseSP ();        
-    } else if (type == "not") {
-        decreaseSP ();
-        fout << "M=!M" << std::endl;
-        increaseSP ();
+void CodeWriter::push(string loc, int i)
+{
+    if (loc == "3" || loc == "5")
+    {
+        outf << "@" << loc << endl << "D=A" << endl << "@" << i << endl << "A=D+A" << endl << "D=M" << endl << "@SP" << endl << "A=M" << endl << "M=D" << endl;
+        incSP();
+    }
+    else
+    {
+        outf << "@" << loc << endl << "D=M" << endl << "@" << i << endl << "A=D+A" << endl << "D=M" << endl << "@SP" << endl << "A=M" << endl << "M=D" << endl;
+        incSP();
     }
 }
 
-void CodeWriter::writePushPop (TYPE type, std::string segment, int arg2) {
-    if (type == C_PUSH) {
-        if (segment == "constant") {
-            fout << "@" << arg2 << std::endl << "D=A" << std::endl;
-            fout << "@SP" << std::endl << "A=M" << std::endl << "M=D" << std::endl;
-            increaseSP ();
-        } else if (segment == "local") {
-            push ("LCL", arg2);
-        } else if (segment == "argument") {
-            push ("ARG", arg2);
-        } else if (segment == "this") {
-            push ("THIS", arg2);
-        } else if (segment == "that") {
-            push ("THAT", arg2);
-        } else if (segment == "static") {
-            fout << "@" << filename << "." << arg2 << std::endl << "D=M" << std::endl << "@SP" << std::endl << "A=M" << std::endl << "M=D" << std::endl;
-            increaseSP ();
-        } else if (segment == "temp") {
-            push ("5", arg2);
-        } else if (segment == "pointer") {
-            if (arg2 == 0)
-                push ("THIS", arg2);
-            else if (arg2 == 1)
-                push ("THAT", arg2);
-        }
-    } else if (type == C_POP) {
-        if (segment == "local") {
-            pop ("LCL", arg2);
-        } else if (segment == "argument") {
-            pop ("ARG", arg2);
-        } else if (segment == "this") {
-            pop ("THIS", arg2);
-        } else if (segment == "that") {
-            pop ("THAT", arg2);
-        } else if (segment == "static") {
-            fout << "@" << filename << "." << arg2 << std::endl << "D=A" << std::endl << "@R13" << std::endl << "M=D" << std::endl << "@SP"  << std::endl << "M=M-1" << std::endl << "A=M" << std::endl << "D=M" << std::endl << "@R13" << std::endl << "A=M" << std::endl << "M=D" << std::endl;        
-        } else if (segment == "temp") {
-            pop ("5", arg2);
-        } else if (segment == "pointer") {
-            if (arg2 == 0) // 이것도 확인
-                pop ("THIS", arg2);
-            else if (arg2 == 1)
-                pop ("THAT", arg2);            
-        }
+void CodeWriter::pop(string loc, int i)
+{
+    if (loc == "3" || loc == "5")
+    {
+        outf << "@" << loc << endl << "D=A" << endl << "@" << i << endl << "D=D+A" << endl;
+        popGPR(13);
+        decSP();
+        outf << "D=M" << endl << "@R13" << endl << "A=M" << endl << "M=D" << endl;
     }
-}
-
-void CodeWriter::close () {
-    if (fout.is_open())
-        fout.close();   
-}
-
-void CodeWriter::increaseSP () {
-    fout << "@SP" << std::endl << "AM=M+1" << std::endl;
-}
-
-void CodeWriter::decreaseSP () {
-    fout << "@SP" << std::endl << "AM=M-1" << std::endl;
-}
-
-void CodeWriter::push (std::string segment, int i) {
-    if (segment == "3" || segment == "5") {
-        fout << "@" << segment << std::endl << "D=A" << std::endl << "@" << i << std::endl << "A=D+A" << std::endl << "D=M" << std::endl << "@SP" << std::endl << "A=M" << std::endl << "M=D" << std::endl;
-        increaseSP ();
-    } else {
-        fout << "@" << segment << std::endl << "D=M" << std::endl << "@" << i << std::endl << "A=D+A" << std::endl << "D=M" << std::endl << "@SP" << std::endl << "A=M" << std::endl << "M=D" << std::endl;
-        increaseSP ();
+    else
+    {
+        outf << "@" << loc << endl << "D=M" << endl << "@" << i << endl << "D=D+A" << endl;
+        popGPR(13);
+        decSP();
+        outf << "D=M" << endl << "@R13" << endl << "A=M" << endl << "M=D" << endl;
     }
-}
-
-void CodeWriter::pop (std::string segment, int i) {
-    if (segment == "3" || segment == "5") {
-        fout << "@" << segment << std::endl << "D=A" << std::endl << "@" << i << std::endl << "D=D+A" << std::endl;
-        popStoreToRam (13);
-        decreaseSP ();
-        fout << "D=M" << std::endl << "@R13" << std::endl << "A=M" << std::endl << "M=D" << std::endl;
-    } else {
-        fout << "@" << segment << std::endl << "D=M" << std::endl << "@" << i << std::endl << "D=D+A" << std::endl;
-        popStoreToRam (13);
-        decreaseSP ();
-        fout << "D=M" << std::endl << "@R13" << std::endl << "A=M" << std::endl << "M=D" << std::endl;
-    }
-}
-
-void CodeWriter::popStoreToRam (int registerNum) {
-    if (registerNum >= 13 && registerNum <= 15) {
-        fout << "@" << registerNum << std::endl << "M=D" << std::endl;
-    }
-}
-
-void CodeWriter::popStoreToDreg () {
-    fout << "@SP" << std::endl << "AM=M-1" << std::endl << "D=M" << std::endl;
-}
-
-void CodeWriter::setReturn () {
-    fout << "@RETURN" << labelN << std::endl << "D=A" << std::endl << "@R15" << std::endl << "M=D" << std::endl;
-}
-
-void CodeWriter::getReturn () {
-    fout << "@R15" << std::endl << "A=M" << std::endl << "0;JMP" << std::endl;
 }

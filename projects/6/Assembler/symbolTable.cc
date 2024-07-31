@@ -1,44 +1,53 @@
-#include "symbolTable.h"
+/*
+ * Created by Francois W. Nel on 27 Jun 2016.
+ */
+
+#include "SymbolTable.h"
+
+using namespace std;
 
 SymbolTable::SymbolTable() {
-    addEntry("SP", 0);
-    addEntry("LCL", 1);
-    addEntry("ARG", 2);
-    addEntry("THIS", 3);
-    addEntry("THAT", 4);
-    addEntry("R0", 0);
-    addEntry("R1", 1);
-    addEntry("R2", 2);
-    addEntry("R3", 3);
-    addEntry("R4", 4);
-    addEntry("R5", 5);
-    addEntry("R6", 6);
-    addEntry("R7", 7);
-    addEntry("R8", 8);
-    addEntry("R9", 9);
-    addEntry("R10", 10);
-    addEntry("R11", 11);
-    addEntry("R12", 12);
-    addEntry("R13", 13);
-    addEntry("R14", 14);
-    addEntry("R15", 15);
-    addEntry("SCREEN", 16384);
-    addEntry("KBD", 24576);
+    // Populate the table with predefined symbols.
+    symbolAddressTable["SP"] = 0;
+    symbolAddressTable["LCL"] = 1;
+    symbolAddressTable["ARG"] = 2;
+    symbolAddressTable["THIS"] = 3;
+    symbolAddressTable["THAT"] = 4;
+    symbolAddressTable["R0"] = 0;
+    symbolAddressTable["R1"] = 1;
+    symbolAddressTable["R2"] = 2;
+    symbolAddressTable["R3"] = 3;
+    symbolAddressTable["R4"] = 4;
+    symbolAddressTable["R5"] = 5;
+    symbolAddressTable["R6"] = 6;
+    symbolAddressTable["R7"] = 7;
+    symbolAddressTable["R8"] = 8;
+    symbolAddressTable["R9"] = 9;
+    symbolAddressTable["R10"] = 10;
+    symbolAddressTable["R11"] = 11;
+    symbolAddressTable["R12"] = 12;
+    symbolAddressTable["R13"] = 13;
+    symbolAddressTable["R14"] = 14;
+    symbolAddressTable["R15"] = 15;
+    symbolAddressTable["SCREEN"] = 16384;
+    symbolAddressTable["KBD"] = 24576;
 }
 
-void SymbolTable::addEntry (string symbol, int value) {
-    if (symbolT.find(symbol) != symbolT.end()) 
-        symbolT[symbol] = value;
+void SymbolTable::addEntry(string symbol, int address) {
+    if (symbolAddressTable.find(symbol) == symbolAddressTable.end()) {
+        symbolAddressTable[symbol] = address;
+    }
 }
 
-bool SymbolTable::containEntry (string symbol) {
-    if (symbolT.find(symbol) != symbolT.end())
-        return true;
-    return false;
+bool SymbolTable::contains(string symbol) {
+    return (symbolAddressTable.find(symbol) != symbolAddressTable.end());
 }
 
-int SymbolTable::getAddress (string symbol) {
-    if (symbolT.find(symbol) != symbolT.end())
-        return symbolT[symbol];
+int SymbolTable::getAddress(string symbol) {
+    if (symbolAddressTable.find(symbol) != symbolAddressTable.end()) {
+        return symbolAddressTable[symbol];
+    }
+
+    // If the table does not contain the symbol.
     return 0;
 }
