@@ -9,7 +9,7 @@ private:
     map<string, int> symbolT;
 public:
     SymbolTable ();
-    void addEntry (const string& symbol, int value);
-    bool containEntry (const string& symbol);
-    int getAddress (const string& symbol);
+    void addEntry (string symbol, int value);
+    bool containEntry (string symbol);
+    int getAddress (string symbol);
 };

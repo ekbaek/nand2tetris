@@ -26,18 +26,18 @@ SymbolTable::SymbolTable() {
     addEntry("KBD", 24576);
 }
 
-void SymbolTable::addEntry (const string& symbol, int value) {
+void SymbolTable::addEntry (string symbol, int value) {
     if (symbolT.find(symbol) != symbolT.end()) 
         symbolT[symbol] = value;
 }
 
-bool SymbolTable::containEntry (const string& symbol) {
+bool SymbolTable::containEntry (string symbol) {
     if (symbolT.find(symbol) != symbolT.end())
         return true;
     return false;
 }
 
-int SymbolTable::getAddress (const string& symbol) {
+int SymbolTable::getAddress (string symbol) {
     if (symbolT.find(symbol) != symbolT.end())
         return symbolT[symbol];
     return 0;

@@ -6,7 +6,7 @@ using namespace std;
 
 class Parser {
 private:
-    ifstream input;
+    ifstream fin;
     map<char, char> commandT;
     string current_command;
 public:
